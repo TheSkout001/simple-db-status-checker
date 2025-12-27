@@ -3,8 +3,7 @@ import asyncio
 
 import mariadb
 from pymongo import AsyncMongoClient
-from dotenv import load_dotenv
-load_dotenv()
+
 
 required_env_vars = [
     "MONGO_URI",

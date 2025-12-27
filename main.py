@@ -9,6 +9,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 import MySQLdb
 from pymongo import AsyncMongoClient
 
+# init
+mongo_client = None
+mysql_connection = None
+mysql_cursor = None
+
 # Which databases to check based on environment variables
 mongo_enabled = all(var in os.environ for var in [
     "MONGO_URI",
@@ -33,7 +38,7 @@ if mysql_enabled:
             user=os.getenv("MARIADB_USER"),
             passwd=os.getenv("MARIADB_PASSWORD"),
             host=os.getenv("MARIADB_HOST"),
-            port=int(os.getenv("MARIADB_PORT", 3306)),
+            port=int(os.getenv("MARIADB_PORT", "3306")),
         )
 
     mysql_connection = create_mysql_connection()
@@ -55,19 +60,19 @@ async def mongodb_healthcheck():
     start = time.perf_counter()
     try:
         v = await mongo_client.admin.command('ping')
-        logging.debug(f"MongoDB response: {v}")
+        logging.debug("MongoDB response: %s", v)
         if v.get('ok') == 1:
             mongo_status = True
     except Exception as e:
-        logging.error(f"MongoDB connection failed: {e}")
+        logging.error("MongoDB connection failed: %s", e)
     finally:
         elapsed = round((time.perf_counter() - start) * 1000, 2)
-        logging.info(f"MongoDB status: {'up' if mongo_status else 'down'}  {elapsed}ms")
+        logging.info("MongoDB status: %s  %sms", 'up' if mongo_status else 'down', elapsed)
         try:
             await send_healthcheck(os.getenv("MONGO_HEALTHCHECK_URL"), mongo_status, elapsed)
-            logging.info("mongodb push success - " + str(datetime.datetime.now()))
+            logging.info("mongodb push success - %s", datetime.datetime.now())
         except Exception as e:
-            logging.warning(f"Failed to send MongoDB healthcheck: {e}")
+            logging.warning("Failed to send MongoDB healthcheck: %s", e)
 
 
 async def mysql_healthcheck():
@@ -81,24 +86,24 @@ async def mysql_healthcheck():
             try:
                 mysql_cursor.execute("SELECT 1")
                 v = mysql_cursor.fetchone()
-                logging.debug(f"MySQL response: {v}")
+                logging.debug("MySQL response: %s", v)
                 if v[0] == 1:
                     return True # we have to use return here to pass value out of thread
                 return False
             except MySQLdb.Error as e:
-                logging.error(f"MySQL connection failed: {e}")
+                logging.error("MySQL connection failed: %s", e)
                 return False
         mysql_status = await asyncio.to_thread(query)
     except Exception as e:
-        logging.error(f"MySQL check failed: {e}")
+        logging.error("MySQL check failed: %s", e)
     finally:
         elapsed = round((time.perf_counter() - start) * 1000, 2)
-        logging.info(f"MySQL status: {'up' if mysql_status else 'down'}  {elapsed}ms")
+        logging.info("MySQL status: %s  %sms", 'up' if mysql_status else 'down', elapsed)
         try:
             await send_healthcheck(os.getenv("MARIADB_HEALTHCHECK_URL"), mysql_status, elapsed)
-            logging.info("mysql push success - " + str(datetime.datetime.now()))
+            logging.info("mysql push success - %s", datetime.datetime.now())
         except Exception as e:
-            logging.warning(f"Failed to send MySQL healthcheck: {e}")
+            logging.warning("Failed to send MySQL healthcheck: %s", e)
 
 async def main():
     try: 
@@ -111,7 +116,7 @@ async def main():
         if mysql_enabled:
             await mysql_healthcheck()
 
-        await asyncio.sleep(float(os.getenv("HEALTHCHECK_INTERVAL", 60)))
+        await asyncio.sleep(float(os.getenv("HEALTHCHECK_INTERVAL", "60")))
 
 if __name__ == "__main__":
     asyncio.run(main())

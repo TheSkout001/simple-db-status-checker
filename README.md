@@ -1,4 +1,4 @@
-simple database status checker, for [uptime kuma](https://github.com/louislam/uptime>kuma) push monitors
+simple database status checker, for [uptime kuma](https://github.com/louislam/uptime-kuma) push monitors
 
 currently supporting only mongodb and mariadb
 

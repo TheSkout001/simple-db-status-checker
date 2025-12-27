@@ -41,6 +41,8 @@ jobs:
       - name: Build and push Docker image
         id: build-and-push
         run: |
+          IMAGE_NAME=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          
           docker buildx build \
           --file ./Dockerfile \
           --platform linux/arm64,linux/amd64 \

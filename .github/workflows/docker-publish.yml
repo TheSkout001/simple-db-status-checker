@@ -1,14 +1,12 @@
 name: Docker image Build and Deploy
 
-on: 
-  push:
-    branches: [ "release" ]
-  
+on:
+  release:
+    types: [published]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-
 
 jobs:
   build:
@@ -21,30 +19,31 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
-        run: |
-          docker buildx create --use
-      - name: Set date
-        id: date
-        run: echo "::set-output name=date::$(date +'%m-%d-%Y')"
+        run: docker buildx create --use
+
       - name: Log into registry ${{ env.REGISTRY }}
         uses: docker/login-action@v1
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
       - name: Build and push Docker image
-        id: build-and-push
         run: |
           IMAGE_NAME=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          
+          RELEASE_TAG=${{ github.event.release.tag_name }}
+          IS_PRERELEASE=${{ github.event.release.prerelease }}
+
+          TAGS="--tag ${IMAGE_NAME}:${RELEASE_TAG}"
+
+          if [ "$IS_PRERELEASE" = "false" ]; then
+            TAGS="$TAGS --tag ${IMAGE_NAME}:latest"
+          fi
+
           docker buildx build \
-          --file ./Dockerfile \
-          --platform linux/arm64,linux/amd64 \
-          --tag ${IMAGE_NAME}:latest \
-          --push .
+            --file ./Dockerfile \
+            --platform linux/arm64,linux/amd64 \
+            $TAGS \
+            --push .

@@ -44,5 +44,5 @@ jobs:
           docker buildx build \
           --file ./Dockerfile \
           --platform linux/arm64,linux/amd64 \
-          --tag ${{ github.repository }}:latest \
+          --tag ${IMAGE_NAME}:latest \
           --push .
